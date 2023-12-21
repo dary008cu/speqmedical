@@ -1,0 +1,105 @@
+#include <Wire.h>
+
+#include "MAX30105.h"
+
+MAX30105 particleSensor; // initialize MAX30101 with I2C
+
+double B[] = {0.049532996357253, 0, -0.148598989071760, 0, 0.148598989071760, 0, -0.049532996357253};
+
+double A[] = {1, -4.020551133878585, 6.779697183822959, -6.290128938719169, 3.464888938952699, -1.071549957767393, 0.137761301259893};
+
+double y, y_1, y_2, y_3, y_4, y_5, y_6;
+
+double x, x_1, x_2, x_3, x_4, x_5, x_6;
+
+void setup() {
+
+Serial.begin(115200);
+
+while (!Serial); // Wait for Teensy to come online
+
+delay(100);
+
+Serial.println("");
+
+Serial.println("MAX30101");
+
+Serial.println("");
+
+delay(100);
+
+// Initialize sensor
+
+if (particleSensor.begin(Wire, I2C_SPEED_FAST) == false) {
+
+Serial.println("MAX30101 was not found. Please check wiring/power.");
+
+while (1);
+
+}
+
+byte ledBrightness = 70;
+
+byte sampleAverage = 1;
+
+byte ledMode = 2;
+
+int sampleRate = 400;
+
+int pulseWidth = 69;
+
+int adcRange = 16384;
+
+particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange);
+
+}
+
+void loop() {
+
+particleSensor.check(); // Check the sensor
+
+while (particleSensor.available()) {
+
+// Read stored IR
+
+float ir = particleSensor.getFIFOIR();
+
+// Apply digital filter
+
+x = ir;
+
+y = -A[1] * y_1 - A[2] * y_2 - A[3] * y_3 - A[4] * y_4 - A[5] * y_5 - A[6] * y_6 + B[0] * x + B[1] * x_1 + B[2] * x_2 + B[3] * x_3 + B[4] * x_4 + B[5] * x_5 + B[6] * x_6;
+
+// Update history
+
+y_6 = y_5;
+
+y_5 = y_4;
+
+y_4 = y_3;
+
+y_3 = y_2;
+
+y_2 = y_1;
+
+y_1 = y;
+
+x_6 = x_5;
+
+x_5 = x_4;
+
+x_4 = x_3;
+
+x_3 = x_2;
+
+x_2 = x_1;
+
+x_1 = x;
+
+// Print filtered value
+
+Serial.println(y);
+
+}
+
+}
